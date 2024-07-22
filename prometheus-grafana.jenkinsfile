@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    environment {
+        def UserName = "isofh"
+        def GithubDir = "prometheus-grafana"
+        def GitRepo = "https://github.com/nhlinh178/${GithubDir}.git"
+    }
+
+    parameters {
+        choice(choices: ["Production-Prometheus","Production-Prometheus-Container"], description: 'Choose IP where to build', name: 'DeploymentIP')
+    }
+
+    stages {
+        stage('Build Prometheus') {
+              when { expression { params.DeploymentIP }}
+              steps {
+                    script {
+                        def ProductionServer = '10.0.0.237'
+                        def ProductionServerContainer = '10.0.0.238'
+                        if (params.DeploymentIP == "Production-Prometheus") {
+                            sh """ssh ${UserName}@${ProductionServer} 'cd /data/prometheus/${GithubDir} && 
+                            git checkout servers && 
+                            git pull && 
+                            sudo docker restart system-prometheus system-grafana'"""
+                        } else if (params.DeploymentIP == "Production-Prometheus-Container") {
+                            sh """ssh ${UserName}@${ProductionServerContainer} 'cd /home/isofh/${GithubDir} && 
+                            git checkout containers && 
+                            sudo git pull && 
+                            sudo docker restart system-prometheus system-alertmanager'"""
+                        }
+                    }
+              }
+        }
+    }
+}
+
